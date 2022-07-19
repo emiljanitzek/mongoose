@@ -7,7 +7,9 @@ import {
   model,
   Types,
   UpdateQuery,
-  CallbackError
+  CallbackError,
+  HydratedDocument,
+  Query
 } from 'mongoose';
 import { expectAssignable, expectError, expectType } from 'tsd';
 import { AutoTypedSchemaType, autoTypedSchema } from './schema.test';
@@ -327,6 +329,37 @@ function gh11911() {
     filter: {},
     update: changes
   });
+}
+
+function schemaInstanceMethodsAndQueryHelpers() {
+  type UserModelQuery = Query<any, HydratedDocument<User>, UserQueryHelpers> & UserQueryHelpers;
+  interface UserQueryHelpers {
+    byName(this: UserModelQuery, name: string): this
+  }
+  interface User {
+    name: string;
+  }
+  interface UserInstanceMethods {
+    findByName(name: string): Promise<HydratedDocument<User>>;
+  }
+  type UserModel = Model<User, UserQueryHelpers> & UserInstanceMethods;
+
+  const userSchema = new Schema<User, UserModel, UserInstanceMethods, UserQueryHelpers>({
+    name: String
+  }, {
+    methods: {
+      findByName(name: string) {
+        return model('User').findOne({ name }).orFail();
+      }
+    },
+    query: {
+      byName(this: UserModelQuery, name: string) {
+        return this.where({ name });
+      }
+    }
+  });
+
+  const TestModel = model<User, UserModel, UserQueryHelpers>('User', userSchema);
 }
 
 function gh12100() {
