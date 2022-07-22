@@ -74,7 +74,7 @@ declare module 'mongoose' {
 
   export function model<T, U, TQueryHelpers = {}>(
     name: string,
-    schema?: Schema<T, any, TQueryHelpers>,
+    schema?: Schema<T, any, any, TQueryHelpers>,
     collection?: string,
     options?: CompileModelOptions
   ): U;
@@ -156,7 +156,12 @@ declare module 'mongoose' {
 
   type QueryResultType<T> = T extends Query<infer ResultType, any> ? ResultType : never;
 
-  export class Schema<EnforcedDocType = any, M = Model<EnforcedDocType, any, any, any>, TInstanceMethods = {}, TQueryHelpers = {}, TVirtuals = any,
+  export class Schema<
+    EnforcedDocType = any,
+    M = Model<EnforcedDocType, any, any, any>,
+    TInstanceMethods = {},
+    TQueryHelpers = {},
+    TVirtuals = any,
     TStaticMethods = {},
     TPathTypeKey extends TypeKeyBaseType = DefaultTypeKey,
     DocType extends ObtainDocumentType<DocType, EnforcedDocType, TPathTypeKey> = ObtainDocumentType<any, EnforcedDocType, TPathTypeKey>>
@@ -238,7 +243,7 @@ declare module 'mongoose' {
     pathType(path: string): string;
 
     /** Registers a plugin for this schema. */
-    plugin(fn: (schema: Schema<DocType>, opts?: any) => void, opts?: any): this;
+    plugin(fn: (schema: Schema<DocType, M, TInstanceMethods, TQueryHelpers, TVirtuals, TStaticMethods>, opts?: any) => void, opts?: any): this;
 
     /** Defines a post hook for the model. */
     post<T = HydratedDocument<DocType, TInstanceMethods>>(method: MongooseDocumentMiddleware | MongooseDocumentMiddleware[] | RegExp, fn: PostMiddlewareFunction<T, T>): this;
@@ -291,15 +296,15 @@ declare module 'mongoose' {
     set<K extends keyof SchemaOptions>(key: K, value: SchemaOptions[K], _tags?: any): this;
 
     /** Adds static "class" methods to Models compiled from this schema. */
-    static(name: string, fn: (this: M, ...args: any[]) => any): this;
-    static(obj: { [name: string]: (this: M, ...args: any[]) => any }): this;
+    static(name: keyof TStaticMethods, fn: (this: M, ...args: any[]) => any): this;
+    static(obj: { [F in keyof TStaticMethods]: TStaticMethods[F] } & { [name: string]: (this: M, ...args: any[]) => any }): this;
 
     /** Object of currently defined statics on this schema. */
-    statics: { [name: string]: (this: M, ...args: any[]) => any };
+    statics: { [F in keyof TStaticMethods]: TStaticMethods[F] } & { [name: string]: (this: M, ...args: any[]) => any };
 
     /** Creates a virtual type with the given name. */
     virtual<T = HydratedDocument<DocType, TInstanceMethods>>(
-      name: string,
+      name: keyof TVirtuals,
       options?: VirtualTypeOptions<T, DocType>
     ): VirtualType<T>;
 
